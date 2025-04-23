@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Dyscalculia Math Pad • Ages 3-7</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<style>
+  body        { font-family: 'Segoe UI', sans-serif; display:flex; flex-direction:column; align-items:center; padding:1rem; background:#fafafa;}
+  #gameBox    { width: min(90vw,420px); }
+  #qText      { font-size:1.6rem; text-align:center; margin:1rem 0; }
+  canvas      { border:4px dashed #1976d2; border-radius:12px; width:100%; height:280px; touch-action:none;}
+  #controls   { margin-top:0.6rem; display:flex; gap:0.5rem; justify-content:center; }
+  button      { font-size:1rem; padding:0.4rem 1rem; border:none; border-radius:8px; cursor:pointer; }
+  .primary    { background:#1976d2; color:white; }
+  .secondary  { background:#ff9800; color:white; }
+  .success    { background:#4caf50!important; }
+  .error      { background:#d32f2f!important; }
+  #feedback   { font-size:1.4rem; height:2rem; text-align:center; margin-top:0.4rem; }
+</style>
+</head>
+
+<body>
+<div id="gameBox">
+  <div id="qText">Loading…</div>
+  <canvas id="pad" width="400" height="300"></canvas>
+
+  <div id="controls">
+    <button id="clearBtn"  class="secondary">Clear</button>
+    <button id="doneBtn"   class="primary">Done</button>
+  </div>
+  <div id="feedback"></div>
+</div>
+
+<!-- Signature-Pad from CDN -->
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
+<script>
+/* ---------- 1. Question bank (age 3-7) ---------- */
+const QUESTIONS = [
+  /* Ages 3-4  – number sense & tracing */
+  {age:3, prompt:"Trace the number <b>1</b>",          answer:"1"},
+  {age:3, prompt:"Trace the number <b>3</b>",          answer:"3"},
+  {age:4, prompt:"Write how many 🍎🍎",                 answer:"2"},
+  {age:4, prompt:"Write how many 🐻🐻🐻🐻🐻",            answer:"5"},
+
+  /* Ages 5-6 – small addition / sub-traction */
+  {age:5, prompt:"Write the answer:  2 + 1 = ?",      answer:"3"},
+  {age:5, prompt:"Write the answer:  4 − 2 = ?",      answer:"2"},
+  {age:6, prompt:"Write the answer:  3 + 4 = ?",      answer:"7"},
+  {age:6, prompt:"Write the answer:  10 − 6 = ?",     answer:"4"},
+
+  /* Age 7 – slightly larger numbers & word problems */
+  {age:7, prompt:"Sam has 6 apples & gets 5 more.<br>How many apples?", answer:"11"},
+  {age:7, prompt:"Write the answer:  8 + 7 = ?",                     answer:"15"},
+];
+
+/* ---------- 2. Utils ---------- */
+const synth      = window.speechSynthesis;
+function speak(text){ if(!synth) return; const u=new SpeechSynthesisUtterance(text); u.rate=0.9; synth.speak(u); }
+
+/* ---------- 3. Game state ---------- */
+let current  = 0;
+const padEl  = document.getElementById("pad");
+const sigPad = new SignaturePad(padEl,{minWidth:4,maxWidth:6,penColor:"#000"});
+const qText  = document.getElementById("qText");
+const fb     = document.getElementById("feedback");
+
+/* ---------- 4. Game flow ---------- */
+function nextQuestion(){
+  fb.textContent = "";
+  sigPad.clear();
+  if(current >= QUESTIONS.length){ qText.innerHTML="🎉 All done!"; speak("Great job!"); return; }
+  const q = QUESTIONS[current];
+  qText.innerHTML = q.prompt;
+  speak(qText.textContent);
+}
+document.getElementById("clearBtn").onclick = ()=> sigPad.clear();
+document.getElementById("doneBtn").onclick  = ()=>{
+  if(sigPad.isEmpty()){ fb.textContent = "Please write something!"; speak("Try writing the answer"); return; }
+  // —— very simple auto-check by reading last stroke bounding-box width; swap with your ML model later ——
+  const IMAGE = sigPad.toDataURL("image/png");                // pass this to a backend recogniser if you like
+  // For demo we simply let a teacher/parent click “Correct” or “Wrong” dialog:
+  const ok = confirm("Does the child’s answer match “"+QUESTIONS[current].answer+"”?");
+  fb.textContent = ok ? "✔ Correct!" : "✖ Try again";
+  fb.className   = ok ? "success"  : "error";
+  speak(fb.textContent);
+  if(ok){ current++; nextQuestion(); }
+};
+
+nextQuestion();
+</script>
+</body>
+</html>
